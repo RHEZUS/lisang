@@ -1,0 +1,23 @@
+# Byte-compiled / optimized / DLL files
+*.py[cod]
+__pycache__/
+*.so
+
+# Django stuff:
+*.log
+*.pot
+*.pyc
+*.pyo
+*.pyd
+db.sqlite3
+.env
+
+# Media
+/media/
+
+# Static
+/static/
+
+# Virtual environment
+venv/
+env/
