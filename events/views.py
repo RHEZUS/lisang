@@ -3,6 +3,7 @@ from rest_framework import status
 from django.shortcuts import get_object_or_404
 from .models import Category, Event
 from .serializers import CategorySerializer, EventSerializer
+from users.models import CustomUser as User
 
 from rest_framework.decorators import api_view, authentication_classes, permission_classes
 from rest_framework.permissions import IsAuthenticated
@@ -10,8 +11,6 @@ from rest_framework_simplejwt.authentication import JWTAuthentication
 from users.permissions import IsAdmin, IsSuperAdmin
 
 @api_view(['GET'])
-#@authentication_classes([JWTAuthentication])
-#@permission_classes([IsAuthenticated, IsAdmin])
 def category_list(request):
     """
     Handle GET requests for Category list.
@@ -23,7 +22,7 @@ def category_list(request):
 
 @api_view(['POST'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def category_create(request):
     """
     Handle POST requests to create a new Category.
@@ -36,7 +35,7 @@ def category_create(request):
 
 @api_view(['PUT'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def category_update(request, pk):
     """
     Handle PUT requests to update a specific Category.
@@ -50,7 +49,7 @@ def category_update(request, pk):
 
 @api_view(['DELETE'])
 @authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+@permission_classes([IsAuthenticated, IsSuperAdmin])
 def category_delete(request, pk):
     """
     Handle DELETE requests to delete a specific Category.
@@ -61,8 +60,8 @@ def category_delete(request, pk):
 
 
 @api_view(['GET'])
-@authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+#@authentication_classes([JWTAuthentication])
+#@permission_classes([IsAuthenticated])
 def event_list(request):
     """
     Handle GET requests for Event list.
@@ -71,10 +70,20 @@ def event_list(request):
     serializer = EventSerializer(events, many=True)
     return Response(serializer.data)
 
-
 @api_view(['GET'])
 @authentication_classes([JWTAuthentication])
 @permission_classes([IsAuthenticated])
+def get_my_events(request):
+    """
+    Handle GET requests for Event list of the authenticated User.
+    """
+    events = Event.objects.filter(organizer=request.user)
+    serializer = EventSerializer(events, many=True)
+    return Response(serializer.data)
+
+@api_view(['GET'])
+#@authentication_classes([JWTAuthentication])
+#@permission_classes([IsAuthenticated])
 def get_events_by_category(request, pk):
     """
     Handle GET requests to get all events of a specific Category.
@@ -85,8 +94,8 @@ def get_events_by_category(request, pk):
     return Response(serializer.data)
 
 @api_view(['GET'])
-@authentication_classes([JWTAuthentication])
-@permission_classes([IsAuthenticated])
+#@authentication_classes([JWTAuthentication])
+#@permission_classes([IsAuthenticated])
 def event_detail(request, pk):
     """
     Handle GET requests to get details of a specific Event.
@@ -104,7 +113,18 @@ def event_create(request):
     """
     serializer = EventSerializer(data=request.data)
     if serializer.is_valid():
-        serializer.save()
+        event = Event.objects.create(
+            title=request.data['title'],
+            description=request.data['description'],
+            location=request.data['location'],
+            start_date=request.data['start_date'],
+            end_date=request.data['end_date'],
+            is_free=request.data['is_free'],
+            max_attendees=request.data['max_attendees'],
+            organizer= User.objects.get(pk=request.user.id),
+            category = Category.objects.get(pk=request.data['category']),
+        )
+        event.save()
         return Response(serializer.data, status=status.HTTP_201_CREATED)
     return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
 
